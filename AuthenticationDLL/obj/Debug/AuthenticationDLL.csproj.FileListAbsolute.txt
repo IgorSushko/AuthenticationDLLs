@@ -1,0 +1,5 @@
+D:\C_sharp_advanced\Chatproject\AuthenticationDll\AuthenticationDLL\AuthenticationDLL\bin\Debug\AuthenticationDLL.dll
+D:\C_sharp_advanced\Chatproject\AuthenticationDll\AuthenticationDLL\AuthenticationDLL\bin\Debug\AuthenticationDLL.pdb
+D:\C_sharp_advanced\Chatproject\AuthenticationDll\AuthenticationDLL\AuthenticationDLL\obj\Debug\AuthenticationDLL.csprojResolveAssemblyReference.cache
+D:\C_sharp_advanced\Chatproject\AuthenticationDll\AuthenticationDLL\AuthenticationDLL\obj\Debug\AuthenticationDLL.dll
+D:\C_sharp_advanced\Chatproject\AuthenticationDll\AuthenticationDLL\AuthenticationDLL\obj\Debug\AuthenticationDLL.pdb
