@@ -11,11 +11,9 @@ namespace SQLinfra
 {
     public class SQLInfrastructure : IBrokerSQLCommunication
     {
-
-
         string ConnectionString;
-        string example;
-        string example1;
+        string passwordenc;
+        
         int param1Key;
         int number;
         int number2;
@@ -48,21 +46,27 @@ namespace SQLinfra
 
             idWorker = IdWorkerCount();
 
-            using (SqlConnection connWR = new SqlConnection())
+            try
             {
-                connWR.ConnectionString = ConnectionString;
 
-                connWR.Open();
+                using (SqlConnection connWR = new SqlConnection())
+                {
+                    connWR.ConnectionString = ConnectionString;
 
-                SqlCommand insertCommand = new SqlCommand("INSERT INTO tblLoginData (loginId, idWorker, email, password) VALUES (@0, @1, @2, @3)", connWR);
+                    connWR.Open();
 
-                insertCommand.Parameters.Add(new SqlParameter("0", loginId));
-                insertCommand.Parameters.Add(new SqlParameter("1", ++idWorker));
-                insertCommand.Parameters.Add(new SqlParameter("2", email));
-                insertCommand.Parameters.Add(new SqlParameter("3", password));
-                number = insertCommand.ExecuteNonQuery();
-                Console.WriteLine("SQL Insert" + number);
+                    SqlCommand insertCommand = new SqlCommand("INSERT INTO tblLoginData (loginId, idWorker, email, password) VALUES (@0, @1, @2, @3)", connWR);
+
+                    insertCommand.Parameters.Add(new SqlParameter("0", loginId));
+                    insertCommand.Parameters.Add(new SqlParameter("1", ++idWorker));
+                    insertCommand.Parameters.Add(new SqlParameter("2", email));
+                    insertCommand.Parameters.Add(new SqlParameter("3", password));
+                    number = insertCommand.ExecuteNonQuery();
+                    Console.WriteLine("SQL Insert" + number);
+                }
             }
+            catch (Exception error) { throw error; }
+            
             return WriteStatus = true;
         }
 
@@ -73,37 +77,37 @@ namespace SQLinfra
         {
             int idWorkerLastValue = 0;
             string idWorkerStr = String.Empty;
-
-            using (SqlConnection conn = new SqlConnection())
+            try
             {
-
-                conn.ConnectionString = ConnectionString;
-                try
+                using (SqlConnection conn = new SqlConnection())
                 {
+
+                    conn.ConnectionString = ConnectionString;
                     conn.Open();
 
-                }
-                catch (SqlException er)
-                {
+                    SqlCommand command = new SqlCommand("SELECT[idWorker] FROM[teamChatDb].[dbo].[tblLoginData]", conn);
 
-                    Console.WriteLine(er);
-                }
+                    command.Parameters.Add(new SqlParameter("0", 1));
 
-                SqlCommand command = new SqlCommand("SELECT[idWorker] FROM[teamChatDb].[dbo].[tblLoginData]", conn);
-
-                command.Parameters.Add(new SqlParameter("0", 1));
-
-                using (SqlDataReader reader = command.ExecuteReader())
-                {
-
-                    while (reader.Read())
+                    using (SqlDataReader reader = command.ExecuteReader())
                     {
-                        idWorkerStr = (String.Format("{0}", reader[0]));
+
+                        while (reader.Read())
+                        {
+                            idWorkerStr = (String.Format("{0}", reader[0]));
+
+                        }
 
                     }
-
                 }
             }
+            catch (Exception er)
+            {
+
+                throw er;
+            }
+
+
             if (string.IsNullOrEmpty(idWorkerStr)) { return idWorkerLastValue = 0; }
             else { idWorkerLastValue = Convert.ToInt32(idWorkerStr); }
 
@@ -188,7 +192,7 @@ namespace SQLinfra
                     while (reader.Read())
                     {
 
-                        example = (String.Format("{0}", reader[0]));
+                        passwordenc = (String.Format("{0}", reader[0]));
                         countrows++;
 
                     }
@@ -198,7 +202,7 @@ namespace SQLinfra
             }
 
 
-            return example;
+            return passwordenc;
         }
 
 
@@ -253,13 +257,20 @@ namespace SQLinfra
         public int GetTopicID(string userOne, string userTwo)
         {
             int getTopicValue;
-            int provideTopicId;
+            int IsRemovedFromTopic = 0;
             int userOneIdWorker;
             int userTwoIdWorker;
+            List<int> userIdOnehasTopic = new List<int>();
+            int userIdTwohasTopic;
 
-            getTopicValue = CreateTopic();
             userOneIdWorker = ProvideIdWorkerFromLogin(userOne);
             userTwoIdWorker = ProvideIdWorkerFromLogin(userTwo);
+            userIdOnehasTopic = UserOneTopicsList(userOneIdWorker);
+            userIdTwohasTopic = IsUserTwoHasSharedTopicWithUserOne(userIdOnehasTopic, userTwoIdWorker);
+
+            if (userIdTwohasTopic != -1) { return getTopicValue = userIdTwohasTopic; }
+
+            getTopicValue = CreateTopic();
             using (SqlConnection connWR = new SqlConnection())
             {
                 connWR.ConnectionString = ConnectionString;
@@ -270,13 +281,13 @@ namespace SQLinfra
 
                 insertCommand.Parameters.Add(new SqlParameter("0", userOneIdWorker));
                 insertCommand.Parameters.Add(new SqlParameter("1", getTopicValue));
-                insertCommand.Parameters.Add(new SqlParameter("2", 5));
+                insertCommand.Parameters.Add(new SqlParameter("2", IsRemovedFromTopic));
 
                 SqlCommand insertCommanduser2 = new SqlCommand("INSERT INTO tblUserPerTopics (idWorker, ID_column, IsRemovedFromTopic) VALUES (@0, @1, @2)", connWR);
 
                 insertCommanduser2.Parameters.Add(new SqlParameter("0", userTwoIdWorker));
                 insertCommanduser2.Parameters.Add(new SqlParameter("1", getTopicValue));
-                insertCommanduser2.Parameters.Add(new SqlParameter("2", 5));
+                insertCommanduser2.Parameters.Add(new SqlParameter("2", IsRemovedFromTopic));// 5- false  ; 255 -true
 
                 number = insertCommand.ExecuteNonQuery();
                 number2 = insertCommanduser2.ExecuteNonQuery();
@@ -284,6 +295,88 @@ namespace SQLinfra
             }
 
             return getTopicValue;
+        }
+
+        private List<int> UserOneTopicsList(int userID)
+        {
+
+            List<int> topicsList = new List<int>();
+
+            using (SqlConnection conn = new SqlConnection())
+            {
+
+                conn.ConnectionString = ConnectionString;
+                try
+                {
+                    conn.Open();
+
+                }
+                catch (SqlException er)
+                {
+
+                    Console.WriteLine(er);
+                }
+
+                SqlCommand command = new SqlCommand("select ID_column from tblUserPerTopics where (idWorker=" + userID + " and IsRemovedFromTopic=0) ", conn);
+
+                command.Parameters.Add(new SqlParameter("0", 1));
+
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+
+                    while (reader.Read())
+                    {
+                        int intUserID = reader.GetInt32(0);
+                        topicsList.Add(intUserID);
+                    }
+
+                }
+
+            }
+
+            return topicsList;
+        }
+
+        private int IsUserTwoHasSharedTopicWithUserOne(List<int> TopicIDs, int userTwoIdWorker)
+        {
+
+            int IsUserOneInTopic = -1;
+
+            using (SqlConnection conn = new SqlConnection())
+            {
+
+                conn.ConnectionString = ConnectionString;
+                try
+                {
+                    conn.Open();
+
+                }
+                catch (SqlException er)
+                {
+
+                    Console.WriteLine(er);
+                }
+
+                foreach (int topicID in TopicIDs)
+                {
+                    SqlCommand command = new SqlCommand("select idWorker from tblUserPerTopics where (ID_column=" + topicID + " and IsRemovedFromTopic=0) ", conn);
+
+                    command.Parameters.Add(new SqlParameter("0", 1));
+
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+
+                        while (reader.Read())
+                        {
+                            int intUserID = reader.GetInt32(0);
+                            if (intUserID == userTwoIdWorker) { return IsUserOneInTopic = topicID; };
+                        }
+
+                    }
+                }
+            }
+
+            return IsUserOneInTopic;
         }
 
         private int CreateTopic()
