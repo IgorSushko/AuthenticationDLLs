@@ -20,7 +20,15 @@ namespace BackEndMocker
         /// <param name="userOne">init user</param>
         /// <param name="userTwo">secondary user</param>
         /// <returns>return ID from SQL</returns>
-       int GetTopicID(string userOne, string userTwo);        
-      
+       int GetTopicID(string userOne, string userTwo);
+
+        /// <summary>
+        /// Rreturn true in case of user existing in defined topic ID, false - in vice versa.
+        /// </summary>
+        /// <param name="userName">user identifier</param>
+        /// <param name="topicId">id of topic</param>
+        /// <returns></returns>
+        bool IsUserExistingInChat(string userName, int topicId);
+
     }
 }

@@ -47,22 +47,13 @@ namespace LoginFuncthionality
             string plainPasswordfromDB;
             if (string.IsNullOrEmpty(cypherText))
             {
-                Console.WriteLine("****Login Failed********");
+                
                 return false;
             }
 
             plainPasswordfromDB = EncryptPassword.DecryptPassword(cypherText);
             bool dessision = plainPasswordfromDB.Equals(passwordUser);
-            if (dessision == true)
-            {
-                Console.WriteLine("****Login succesfull********");
-
-            }
-            else
-            {
-                Console.WriteLine("****Login Failed*Dessision*******");
-            }
-
+           
             return dessision;
 
 

@@ -15,13 +15,10 @@ namespace SQLinfra
         string passwordenc;
         
         int param1Key;
-        int number;
-        int number2;
         int countrows = 0;
         bool ConnectionResult;
 
-        public string WriteUserToDbSummary { get; set; }
-
+        
         public SQLInfrastructure(string ConnectionString)
         {
             this.ConnectionString = ConnectionString;
@@ -39,33 +36,36 @@ namespace SQLinfra
         /// <returns>bool result of recording</returns>
         public bool WriteToTable(string loginId, string email, string password)
         {
+            int exWriteToTable;
             int idWorker;
             bool WriteStatus = false;
             bool checkUserInDb = IsloginIdInDataBAse(loginId);
-            if (checkUserInDb) { WriteUserToDbSummary = "User is already in Database"; return WriteStatus = false; }
+            if (checkUserInDb) {  return WriteStatus = false; }
 
             idWorker = IdWorkerCount();
 
-            try
-            {
 
                 using (SqlConnection connWR = new SqlConnection())
                 {
                     connWR.ConnectionString = ConnectionString;
 
+                try
+                {
                     connWR.Open();
+                }
+                catch (SqlException error) { throw error; }
 
-                    SqlCommand insertCommand = new SqlCommand("INSERT INTO tblLoginData (loginId, idWorker, email, password) VALUES (@0, @1, @2, @3)", connWR);
+                SqlCommand insertCommand = new SqlCommand("INSERT INTO tblLoginData (loginId, idWorker, email, password) VALUES (@0, @1, @2, @3)", connWR);
 
                     insertCommand.Parameters.Add(new SqlParameter("0", loginId));
                     insertCommand.Parameters.Add(new SqlParameter("1", ++idWorker));
                     insertCommand.Parameters.Add(new SqlParameter("2", email));
                     insertCommand.Parameters.Add(new SqlParameter("3", password));
-                    number = insertCommand.ExecuteNonQuery();
-                    Console.WriteLine("SQL Insert" + number);
+                exWriteToTable = insertCommand.ExecuteNonQuery();
+                    
                 }
-            }
-            catch (Exception error) { throw error; }
+            
+            
             
             return WriteStatus = true;
         }
@@ -77,17 +77,23 @@ namespace SQLinfra
         {
             int idWorkerLastValue = 0;
             string idWorkerStr = String.Empty;
-            try
-            {
+            
                 using (SqlConnection conn = new SqlConnection())
                 {
 
                     conn.ConnectionString = ConnectionString;
+
+                try
+                {
                     conn.Open();
+                }
+                catch (SqlException er)
+                {
 
-                    SqlCommand command = new SqlCommand("SELECT[idWorker] FROM[teamChatDb].[dbo].[tblLoginData]", conn);
+                    throw er;
+                }
 
-                    command.Parameters.Add(new SqlParameter("0", 1));
+                SqlCommand command = new SqlCommand("SELECT[idWorker] FROM[teamChatDb].[dbo].[tblLoginData]", conn);
 
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
@@ -100,13 +106,7 @@ namespace SQLinfra
 
                     }
                 }
-            }
-            catch (Exception er)
-            {
-
-                throw er;
-            }
-
+                   
 
             if (string.IsNullOrEmpty(idWorkerStr)) { return idWorkerLastValue = 0; }
             else { idWorkerLastValue = Convert.ToInt32(idWorkerStr); }
@@ -116,7 +116,7 @@ namespace SQLinfra
         /// <summary>
         /// Using this method for verifying Is dedicated user in database
         /// </summary>
-        /// <param name="loginId"></param>
+        /// <param name="loginId">Login name that need to be verified</param>
         /// <returns>true in case user already in Database, false - in case not</returns>
         public bool IsloginIdInDataBAse(string loginId)
         {
@@ -134,14 +134,12 @@ namespace SQLinfra
                 }
                 catch (SqlException er)
                 {
-
-                    Console.WriteLine(er);
+                    throw er;
                 }
 
                 SqlCommand command = new SqlCommand("SELECT [loginid] FROM [teamChatDb].[dbo].[tblLoginData] where loginid=" + "'" + loginId + "'", conn);
 
-                command.Parameters.Add(new SqlParameter("0", 1));
-
+                
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
 
@@ -179,7 +177,7 @@ namespace SQLinfra
                 catch (SqlException er)
                 {
 
-                    Console.WriteLine(er);
+                    throw er;
                 }
 
                 SqlCommand command = new SqlCommand("SELECT [password] FROM [teamChatDb].[dbo].[tblLoginData] where loginid=" + "'" + loginId + "'", conn);
@@ -226,7 +224,7 @@ namespace SQLinfra
                 catch (SqlException er)
                 {
 
-                    Console.WriteLine(er);
+                    throw er;
                 }
 
                 SqlCommand command = new SqlCommand("SELECT [loginid] FROM [teamChatDb].[dbo].[tblLoginData]", conn);
@@ -262,6 +260,8 @@ namespace SQLinfra
             int userTwoIdWorker;
             List<int> userIdOnehasTopic = new List<int>();
             int userIdTwohasTopic;
+            int exGetTopicID;
+            int exGetTopicID2;
 
             userOneIdWorker = ProvideIdWorkerFromLogin(userOne);
             userTwoIdWorker = ProvideIdWorkerFromLogin(userTwo);
@@ -289,9 +289,9 @@ namespace SQLinfra
                 insertCommanduser2.Parameters.Add(new SqlParameter("1", getTopicValue));
                 insertCommanduser2.Parameters.Add(new SqlParameter("2", IsRemovedFromTopic));// 5- false  ; 255 -true
 
-                number = insertCommand.ExecuteNonQuery();
-                number2 = insertCommanduser2.ExecuteNonQuery();
-                Console.WriteLine("SQL Insert" + number + "  " + number2);
+                exGetTopicID = insertCommand.ExecuteNonQuery();
+                exGetTopicID2 = insertCommanduser2.ExecuteNonQuery();
+                
             }
 
             return getTopicValue;
@@ -314,7 +314,7 @@ namespace SQLinfra
                 catch (SqlException er)
                 {
 
-                    Console.WriteLine(er);
+                    throw er;
                 }
 
                 SqlCommand command = new SqlCommand("select ID_column from tblUserPerTopics where (idWorker=" + userID + " and IsRemovedFromTopic=0) ", conn);
@@ -354,7 +354,7 @@ namespace SQLinfra
                 catch (SqlException er)
                 {
 
-                    Console.WriteLine(er);
+                    throw er;
                 }
 
                 foreach (int topicID in TopicIDs)
@@ -382,6 +382,7 @@ namespace SQLinfra
         private int CreateTopic()
         {
             int topicIntValue;
+            int exCreateTopic;
             string topicStrValue = String.Empty;
             DateTime dateCreated;
 
@@ -395,8 +396,8 @@ namespace SQLinfra
 
                 SqlCommand insertCommand = new SqlCommand("Insert Into tblTopics (DateCreated) VALUES (@0)", connWR);
                 insertCommand.Parameters.Add(new SqlParameter("0", dateCreated));
-                number = insertCommand.ExecuteNonQuery();
-                Console.WriteLine("SQL Insert" + number);
+                exCreateTopic = insertCommand.ExecuteNonQuery();
+               
             }
 
             using (SqlConnection connWR2 = new SqlConnection())
@@ -426,6 +427,57 @@ namespace SQLinfra
             return topicIntValue;
         }
 
+        /// <summary>
+        /// Rreturn true in case of user existing in defined topic ID, false - in vice versa.
+        /// </summary>
+        /// <param name="userName">user identifier</param>
+        /// <param name="topicId">id of topic</param>
+        /// <returns>Result True in case user in Topic, and topicnot closed</returns>
+        public bool IsUserExistingInChat(string userName, int topicId)
+        {
+            bool isUserexistResult = false;
+            int userIdWorker;
+
+            userIdWorker = ProvideIdWorkerFromLogin(userName);
+
+
+            using (SqlConnection conn = new SqlConnection())
+            {
+
+                conn.ConnectionString = ConnectionString;
+                try
+                {
+                    conn.Open();
+
+                }
+                catch (SqlException er)
+                {
+
+                    throw er;
+                }
+
+
+                SqlCommand command = new SqlCommand("select IsRemovedFromTopic from tblUserPerTopics where (idWorker=@username and ID_column=@topicid) ", conn);
+                command.Parameters.Add(new SqlParameter("@username", userIdWorker));
+                command.Parameters.Add(new SqlParameter("@topicid", topicId));
+
+
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+
+                    while (reader.Read())
+                    {
+                        int intIsUserInTopic = reader.GetInt32(0);
+                        if (intIsUserInTopic == 0) { return isUserexistResult = true; };
+                    }
+
+
+                }
+            }
+
+            return isUserexistResult = false;
+        }
+
 
         private int ProvideIdWorkerFromLogin(string loginId)
         {
@@ -444,7 +496,7 @@ namespace SQLinfra
                 catch (SqlException er)
                 {
 
-                    Console.WriteLine(er);
+                    throw er;
                 }
 
                 SqlCommand command = new SqlCommand("SELECT [idWorker] FROM [teamChatDb].[dbo].[tblLoginData] where loginid=" + "'" + loginId + "'", conn);
