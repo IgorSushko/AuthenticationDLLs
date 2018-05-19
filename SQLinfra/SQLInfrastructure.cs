@@ -180,9 +180,9 @@ namespace SQLinfra
                     throw er;
                 }
 
-                SqlCommand command = new SqlCommand("SELECT [password] FROM [teamChatDb].[dbo].[tblLoginData] where loginid=" + "'" + loginId + "'", conn);
+                SqlCommand command = new SqlCommand("SELECT [password] FROM [teamChatDb].[dbo].[tblLoginData] where loginid=@loginId", conn);
 
-                command.Parameters.Add(new SqlParameter("0", 1));
+                command.Parameters.Add(new SqlParameter("@loginId", loginId));
 
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
@@ -228,8 +228,6 @@ namespace SQLinfra
                 }
 
                 SqlCommand command = new SqlCommand("SELECT [loginid] FROM [teamChatDb].[dbo].[tblLoginData]", conn);
-
-                command.Parameters.Add(new SqlParameter("0", 1));
 
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
@@ -317,9 +315,9 @@ namespace SQLinfra
                     throw er;
                 }
 
-                SqlCommand command = new SqlCommand("select ID_column from tblUserPerTopics where (idWorker=" + userID + " and IsRemovedFromTopic=0) ", conn);
+                SqlCommand command = new SqlCommand("select ID_column from tblUserPerTopics where (idWorker=@userID and IsRemovedFromTopic=0) ", conn);
 
-                command.Parameters.Add(new SqlParameter("0", 1));
+                command.Parameters.Add(new SqlParameter("@userID", userID));
 
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
@@ -359,9 +357,9 @@ namespace SQLinfra
 
                 foreach (int topicID in TopicIDs)
                 {
-                    SqlCommand command = new SqlCommand("select idWorker from tblUserPerTopics where (ID_column=" + topicID + " and IsRemovedFromTopic=0) ", conn);
+                    SqlCommand command = new SqlCommand("select idWorker from tblUserPerTopics where (ID_column=@topicID and IsRemovedFromTopic=0) ", conn);
 
-                    command.Parameters.Add(new SqlParameter("0", 1));
+                    command.Parameters.Add(new SqlParameter("@topicID", topicID));
 
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
@@ -379,15 +377,20 @@ namespace SQLinfra
             return IsUserOneInTopic;
         }
 
+        
         private int CreateTopic()
         {
             int topicIntValue;
             int exCreateTopic;
             string topicStrValue = String.Empty;
             DateTime dateCreated;
+            string dtDatemodifiedForDb;
+
+            string datePatt = @"yyyy.MM.dd HH:mm:ss";
 
             dateCreated = DateTime.Now;
 
+            dtDatemodifiedForDb = dateCreated.ToString(datePatt);
             using (SqlConnection connWR = new SqlConnection())
             {
                 connWR.ConnectionString = ConnectionString;
@@ -395,9 +398,9 @@ namespace SQLinfra
                 connWR.Open();
 
                 SqlCommand insertCommand = new SqlCommand("Insert Into tblTopics (DateCreated) VALUES (@0)", connWR);
-                insertCommand.Parameters.Add(new SqlParameter("0", dateCreated));
+                insertCommand.Parameters.Add(new SqlParameter("0", dtDatemodifiedForDb));
                 exCreateTopic = insertCommand.ExecuteNonQuery();
-               
+
             }
 
             using (SqlConnection connWR2 = new SqlConnection())
@@ -405,9 +408,9 @@ namespace SQLinfra
                 connWR2.ConnectionString = ConnectionString;
 
                 connWR2.Open();
-                SqlCommand command = new SqlCommand("select ID_column from tblTopics  where DateCreated="+"'"+ dateCreated+"'", connWR2);
+                SqlCommand command = new SqlCommand("select TopicId from tblTopics  where DateCreated=@dateCreated", connWR2);
 
-                command.Parameters.Add(new SqlParameter("0", 1));
+                command.Parameters.Add(new SqlParameter("@dateCreated", dtDatemodifiedForDb));
 
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
@@ -478,6 +481,36 @@ namespace SQLinfra
             return isUserexistResult = false;
         }
 
+        /// <summary>        
+        /// Return true in case of both users existing under same topic ID. All users should be active there.
+        /// </summary>
+        /// <param name="userOne"></param>
+        /// <param name="userTwo"></param>
+        /// <returns></returns>
+        public bool IsUsersInSameChat(string userOne, string userTwo)
+        {
+
+            bool isUsersInSameChat = false;
+
+
+
+            int userOneIdWorker;
+            int userTwoIdWorker;
+            List<int> userIdOnehasTopic = new List<int>();
+            int userIdTwohasTopic;
+
+            userOneIdWorker = ProvideIdWorkerFromLogin(userOne);
+            userTwoIdWorker = ProvideIdWorkerFromLogin(userTwo);
+            userIdOnehasTopic = UserOneTopicsList(userOneIdWorker);
+            userIdTwohasTopic = IsUserTwoHasSharedTopicWithUserOne(userIdOnehasTopic, userTwoIdWorker);
+
+            if (userIdTwohasTopic != -1) { return isUsersInSameChat = true; }
+
+
+
+            return isUsersInSameChat = false;
+        }
+
 
         private int ProvideIdWorkerFromLogin(string loginId)
         {
@@ -499,9 +532,9 @@ namespace SQLinfra
                     throw er;
                 }
 
-                SqlCommand command = new SqlCommand("SELECT [idWorker] FROM [teamChatDb].[dbo].[tblLoginData] where loginid=" + "'" + loginId + "'", conn);
+                SqlCommand command = new SqlCommand("SELECT [idWorker] FROM [teamChatDb].[dbo].[tblLoginData] where loginid=@loginId", conn);
 
-                command.Parameters.Add(new SqlParameter("0", 1));
+                command.Parameters.Add(new SqlParameter("@loginId", loginId));
 
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
