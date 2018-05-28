@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Data.SqlClient;
 using BackEndMocker;
+using log4net;
+using log4net.Config;
 
 
 namespace SQLinfra
@@ -14,14 +16,19 @@ namespace SQLinfra
         string ConnectionString;
         string passwordenc;
         
-        int param1Key;
+      int param1Key;
         int countrows = 0;
-        bool ConnectionResult;
+       bool ConnectionResult;
+       //private static readonly log4net.ILog log =log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
+       
         
+
         public SQLInfrastructure(string ConnectionString)
         {
             this.ConnectionString = ConnectionString;
+            Logger.InitLogger();
+            Logger.Log.Info(this.ToString() + "SQLinfra is started");
         }
 
 
@@ -53,7 +60,7 @@ namespace SQLinfra
                 {
                     connWR.Open();
                 }
-                catch (SqlException error) { throw error; }
+                catch (SqlException error) { Logger.Log.Error(this.ToString()+error); throw error; }
 
                 SqlCommand insertCommand = new SqlCommand("INSERT INTO tblLoginData (loginId, idWorker, email, password) VALUES (@0, @1, @2, @3)", connWR);
 
@@ -90,7 +97,7 @@ namespace SQLinfra
                 catch (SqlException er)
                 {
 
-                    throw er;
+                    Logger.Log.Error(this.ToString() + er); throw er;
                 }
 
                 SqlCommand command = new SqlCommand("SELECT[idWorker] FROM[teamChatDb].[dbo].[tblLoginData]", conn);
@@ -134,7 +141,7 @@ namespace SQLinfra
                 }
                 catch (SqlException er)
                 {
-                    throw er;
+                    Logger.Log.Error(this.ToString() + er);  throw er;
                 }
 
                 SqlCommand command = new SqlCommand("SELECT [loginid] FROM [teamChatDb].[dbo].[tblLoginData] where loginid=" + "'" + loginId + "'", conn);
@@ -177,7 +184,7 @@ namespace SQLinfra
                 catch (SqlException er)
                 {
 
-                    throw er;
+                    Logger.Log.Error(this.ToString() + er); throw er;
                 }
 
                 SqlCommand command = new SqlCommand("SELECT [password] FROM [teamChatDb].[dbo].[tblLoginData] where loginid=@loginId", conn);
@@ -210,6 +217,7 @@ namespace SQLinfra
         /// <returns>Returns the list of users from Database.</returns>
         public List<string> GetUserListFromDB()
         {
+            Logger.Log.Info(this.ToString()+"  GetUserListFromDB is initialized");
             List<string> userNammes = new List<string>();
             
             using (SqlConnection conn = new SqlConnection())
@@ -219,12 +227,12 @@ namespace SQLinfra
                 try
                 {
                     conn.Open();
-
+                     
                 }
                 catch (SqlException er)
                 {
 
-                    throw er;
+                    Logger.Log.Error(this.ToString() + er); throw er;
                 }
 
                 SqlCommand command = new SqlCommand("SELECT [loginid] FROM [teamChatDb].[dbo].[tblLoginData]", conn);
@@ -240,7 +248,7 @@ namespace SQLinfra
 
                 }
             }
-            
+            Logger.Log.Info(this.ToString()+"  GetUserListFromDB has created list of users");
             return userNammes;
         }
 
@@ -261,19 +269,24 @@ namespace SQLinfra
             int exGetTopicID;
             int exGetTopicID2;
 
+            Logger.Log.Info("GetTopicId Initialized");
             userOneIdWorker = ProvideIdWorkerFromLogin(userOne);
             userTwoIdWorker = ProvideIdWorkerFromLogin(userTwo);
             userIdOnehasTopic = UserOneTopicsList(userOneIdWorker);
             userIdTwohasTopic = IsUserTwoHasSharedTopicWithUserOne(userIdOnehasTopic, userTwoIdWorker);
 
-            if (userIdTwohasTopic != -1) { return getTopicValue = userIdTwohasTopic; }
+            if (userIdTwohasTopic != -1) { Logger.Log.Info(this.ToString()+"Topic already exist.TopicID is --"+ userIdTwohasTopic); return getTopicValue = userIdTwohasTopic; }
 
             getTopicValue = CreateTopic();
             using (SqlConnection connWR = new SqlConnection())
             {
                 connWR.ConnectionString = ConnectionString;
-
-                connWR.Open();
+                try
+                {
+                    connWR.Open();
+                }
+                catch(SqlException er)
+                { Logger.Log.Error(this.ToString() + er);throw er; ; }
 
                 SqlCommand insertCommand = new SqlCommand("INSERT INTO tblUserPerTopics (idWorker, ID_column, IsRemovedFromTopic) VALUES (@0, @1, @2)", connWR);
 
@@ -288,10 +301,11 @@ namespace SQLinfra
                 insertCommanduser2.Parameters.Add(new SqlParameter("2", IsRemovedFromTopic));// 5- false  ; 255 -true
 
                 exGetTopicID = insertCommand.ExecuteNonQuery();
+                Logger.Log.Info(this.ToString()+"String with User1 was inserted to DataBase --"+exGetTopicID);
                 exGetTopicID2 = insertCommanduser2.ExecuteNonQuery();
-                
+                Logger.Log.Info(this.ToString()+"String with User2 was inserted to DataBase --" + exGetTopicID2);
             }
-
+            Logger.Log.Info(this.ToString()+"Created new Topic.TopicID is --" + userIdTwohasTopic);
             return getTopicValue;
         }
 
@@ -312,7 +326,7 @@ namespace SQLinfra
                 catch (SqlException er)
                 {
 
-                    throw er;
+                    Logger.Log.Error(this.ToString() + er);  throw er;
                 }
 
                 SqlCommand command = new SqlCommand("select ID_column from tblUserPerTopics where (idWorker=@userID and IsRemovedFromTopic=0) ", conn);
@@ -352,7 +366,7 @@ namespace SQLinfra
                 catch (SqlException er)
                 {
 
-                    throw er;
+                    Logger.Log.Error(this.ToString() + er);  throw er;
                 }
 
                 foreach (int topicID in TopicIDs)
@@ -456,7 +470,7 @@ namespace SQLinfra
                 catch (SqlException er)
                 {
 
-                    throw er;
+                    Logger.Log.Error(this.ToString() + er);  throw er;
                 }
 
 
@@ -511,7 +525,83 @@ namespace SQLinfra
             return isUsersInSameChat = false;
         }
 
+        //**************************28.05***********************
+        /// <summary>
+        /// Remove users from topic ID 
+        /// </summary>
+        /// <param name="topicId"></param>
+        /// <returns></returns>
+        public bool CompleteConversationByTopicID(int topicId)
+        {
+            int exModifyDone;
+            bool closeTopicResult = false;
+            using (SqlConnection connWR = new SqlConnection())
+            {
+                connWR.ConnectionString = ConnectionString;
+                try
+                {
+                    connWR.Open();
+                }
+                catch (SqlException error) { Logger.Log.Error(this.ToString() + error); throw error; }
 
+
+                SqlCommand insertCommand = new SqlCommand("UPDATE tblUserPerTopics SET IsRemovedFromTopic = 255 WHERE ID_column = @topicId", connWR);
+                insertCommand.Parameters.Add(new SqlParameter("@topicId", topicId));
+                exModifyDone = insertCommand.ExecuteNonQuery();
+
+            }
+
+            if (exModifyDone == 2) { return closeTopicResult = true; }
+            return closeTopicResult = false;
+        }
+
+        /// <summary>
+        /// Return list of topic ID, where defined user exisgin and alive.
+        /// </summary>
+        /// <param name="userName"></param>
+        /// <returns></returns>
+        public List<int> GetTopicIDsByUserName(string userName)
+        {
+            List<int> topicsListByUserName = new List<int>();
+            int userIdWorker = ProvideIdWorkerFromLogin(userName);
+
+            using (SqlConnection conn = new SqlConnection())
+            {
+
+                conn.ConnectionString = ConnectionString;
+                try
+                {
+                    conn.Open();
+
+                }
+                catch (SqlException er)
+                {
+
+                    Logger.Log.Error(this.ToString() + er);  throw er;
+                }
+
+                SqlCommand command = new SqlCommand("select ID_column from tblUserPerTopics where (idWorker=@userIdWorker and IsRemovedFromTopic=0)", conn);
+
+                command.Parameters.Add(new SqlParameter("@userIdWorker", userIdWorker));
+
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+
+                    while (reader.Read())
+                    {
+                        int intUserID = reader.GetInt32(0);
+                        topicsListByUserName.Add(intUserID);
+                    }
+
+                }
+
+            }
+
+            return topicsListByUserName;
+        }
+
+        //****************End 28.05*****************************
+        
         private int ProvideIdWorkerFromLogin(string loginId)
         {
             int loginIdInDataBAse;
@@ -529,7 +619,7 @@ namespace SQLinfra
                 catch (SqlException er)
                 {
 
-                    throw er;
+                    Logger.Log.Error(this.ToString() + er); throw er;
                 }
 
                 SqlCommand command = new SqlCommand("SELECT [idWorker] FROM [teamChatDb].[dbo].[tblLoginData] where loginid=@loginId", conn);

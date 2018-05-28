@@ -9,3 +9,5 @@ D:\C_sharp_advanced\Chatproject\AuthenticationDll\AuthenticationDLL\LoginFuncthi
 D:\C_sharp_advanced\Chatproject\AuthenticationDll\AuthenticationDLL\LoginFuncthionality\bin\Debug\SQLinfra.pdb
 D:\C_sharp_advanced\Chatproject\AuthenticationDll\AuthenticationDLL\LoginFuncthionality\obj\Debug\LoginFuncthionality.dll
 D:\C_sharp_advanced\Chatproject\AuthenticationDll\AuthenticationDLL\LoginFuncthionality\obj\Debug\LoginFuncthionality.pdb
+D:\C_sharp_advanced\Chatproject\AuthenticationDll\AuthenticationDLL\LoginFuncthionality\bin\Debug\log4net.dll
+D:\C_sharp_advanced\Chatproject\AuthenticationDll\AuthenticationDLL\LoginFuncthionality\bin\Debug\log4net.xml
